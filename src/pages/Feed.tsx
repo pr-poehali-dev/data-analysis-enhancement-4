@@ -1,13 +1,16 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import Icon from "@/components/ui/icon"
 import UploadModal from "@/components/UploadModal"
 import AuthModal from "@/components/AuthModal"
 
+const SUBSCRIBE_URL = "https://functions.poehali.dev/19738def-18c7-452c-9b41-395da0956288"
+
 const mockVideos = [
   {
     id: 1,
     author: "Алексей",
+    authorId: 101,
     avatar: "А",
     avatarColor: "from-purple-500 to-pink-500",
     title: "Как я за месяц набрал 10к подписчиков",
@@ -19,6 +22,7 @@ const mockVideos = [
   {
     id: 2,
     author: "Мария",
+    authorId: 102,
     avatar: "М",
     avatarColor: "from-blue-500 to-cyan-500",
     title: "Обзор нового iPhone — стоит ли покупать?",
@@ -30,6 +34,7 @@ const mockVideos = [
   {
     id: 3,
     author: "Дмитрий",
+    authorId: 103,
     avatar: "Д",
     avatarColor: "from-orange-500 to-red-500",
     title: "Влог — день из жизни разработчика",
@@ -41,6 +46,7 @@ const mockVideos = [
   {
     id: 4,
     author: "Анна",
+    authorId: 104,
     avatar: "А",
     avatarColor: "from-green-500 to-teal-500",
     title: "Рецепт идеальной пасты карбонара",
@@ -52,6 +58,7 @@ const mockVideos = [
   {
     id: 5,
     author: "Игорь",
+    authorId: 105,
     avatar: "И",
     avatarColor: "from-yellow-500 to-orange-500",
     title: "Путешествие в Японию — первые впечатления",
@@ -63,6 +70,7 @@ const mockVideos = [
   {
     id: 6,
     author: "Света",
+    authorId: 106,
     avatar: "С",
     avatarColor: "from-pink-500 to-rose-500",
     title: "Тренировка дома без оборудования — 20 минут",
@@ -75,36 +83,79 @@ const mockVideos = [
 
 export default function Feed() {
   const [liked, setLiked] = useState<number[]>([])
+  const [subscribed, setSubscribed] = useState<number[]>([])
   const [showUpload, setShowUpload] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
+  const [user, setUser] = useState<{ id: number; username: string; first_name: string } | null>(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const saved = localStorage.getItem("auth_user")
+    if (saved) setUser(JSON.parse(saved))
+  }, [])
 
   const toggleLike = (id: number) => {
     setLiked((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id])
   }
 
+  const toggleSubscribe = async (authorId: number) => {
+    if (!user) { setShowAuth(true); return }
+    const token = localStorage.getItem("auth_token")
+    const isSubscribed = subscribed.includes(authorId)
+    setSubscribed((prev) => isSubscribed ? prev.filter((i) => i !== authorId) : [...prev, authorId])
+    await fetch(SUBSCRIBE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Auth-Token": token || "" },
+      body: JSON.stringify({ author_id: authorId, action: isSubscribed ? "unsubscribe" : "subscribe" }),
+    })
+  }
+
+  const handleAuth = (authUser: { id: number; username: string; first_name: string }) => {
+    setUser(authUser)
+  }
+
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-neutral-950/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
-        <button onClick={() => navigate("/")} className="text-white text-sm uppercase tracking-wide hover:text-white/70 transition-colors cursor-pointer">
-          VideoFlow
-        </button>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowUpload(true)}
-            className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer"
-            title="Загрузить видео"
-          >
-            <Icon name="Plus" size={18} />
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-neutral-950/90 backdrop-blur-sm px-6 py-4">
+        <div className="flex justify-between items-center">
+          {/* Left — logo */}
+          <button onClick={() => navigate("/")} className="text-white text-sm uppercase tracking-wide hover:text-white/70 transition-colors cursor-pointer">
+            VideoFlow
           </button>
+
+          {/* Center — Subscriptions tab */}
           <button
-            onClick={() => setShowAuth(true)}
-            className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer"
-            title="Войти"
+            onClick={() => user ? navigate("/subscriptions") : setShowAuth(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-white/70 text-sm hover:bg-white/10 hover:text-white transition-all cursor-pointer"
           >
-            <Icon name="User" size={17} />
+            <Icon name="Users" size={15} />
+            Подписки
           </button>
+
+          {/* Right — upload + profile */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => user ? setShowUpload(true) : setShowAuth(true)}
+              className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer"
+              title="Загрузить видео"
+            >
+              <Icon name="Plus" size={18} />
+            </button>
+            <button
+              onClick={() => setShowAuth(true)}
+              className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer overflow-hidden"
+              title={user ? user.first_name || user.username || "Профиль" : "Войти"}
+            >
+              {user ? (
+                <span className="text-xs font-medium">
+                  {(user.first_name || user.username || "?")[0].toUpperCase()}
+                </span>
+              ) : (
+                <Icon name="User" size={17} />
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -134,11 +185,23 @@ export default function Feed() {
 
               {/* Info */}
               <div className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${video.avatarColor} flex items-center justify-center text-xs font-medium`}>
-                    {video.avatar}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${video.avatarColor} flex items-center justify-center text-xs font-medium`}>
+                      {video.avatar}
+                    </div>
+                    <span className="text-xs text-white/50">{video.author}</span>
                   </div>
-                  <span className="text-xs text-white/50">{video.author}</span>
+                  <button
+                    onClick={() => toggleSubscribe(video.authorId)}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
+                      subscribed.includes(video.authorId)
+                        ? "bg-white/10 border-white/20 text-white/50"
+                        : "border-white/20 text-white/60 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {subscribed.includes(video.authorId) ? "Подписан" : "+ Подписаться"}
+                  </button>
                 </div>
                 <p className="text-sm font-medium leading-snug mb-3">{video.title}</p>
                 <div className="flex flex-wrap gap-1 mb-3">
@@ -166,7 +229,7 @@ export default function Feed() {
       </div>
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuth={handleAuth} />}
     </div>
   )
 }
