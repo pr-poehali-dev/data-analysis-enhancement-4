@@ -9,7 +9,10 @@ export default function UploadModal({ onClose }: UploadModalProps) {
   const [dragging, setDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState("")
+  const [hashtags, setHashtags] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const parsedTags = hashtags.match(/#\w+/g) || []
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -66,8 +69,24 @@ export default function UploadModal({ onClose }: UploadModalProps) {
           placeholder="Название видео..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 outline-none focus:border-white/30 mb-4"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 outline-none focus:border-white/30 mb-3"
         />
+
+        <input
+          type="text"
+          placeholder="#хэштег #ещёодин #тематика"
+          value={hashtags}
+          onChange={(e) => setHashtags(e.target.value)}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 outline-none focus:border-white/30 mb-2"
+        />
+
+        {parsedTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {parsedTags.map((tag) => (
+              <span key={tag} className="text-blue-400 text-xs font-medium">{tag}</span>
+            ))}
+          </div>
+        )}
 
         <button
           disabled={!file || !title}
