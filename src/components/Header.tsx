@@ -2,9 +2,11 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import Icon from "@/components/ui/icon"
 import UploadModal from "@/components/UploadModal"
+import AuthModal from "@/components/AuthModal"
 
 export default function Header() {
   const [showUpload, setShowUpload] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
   const navigate = useNavigate()
 
   return (
@@ -37,9 +39,9 @@ export default function Header() {
 
             {/* Profile button */}
             <button
-              onClick={() => navigate("/profile")}
+              onClick={() => setShowAuth(true)}
               className="w-9 h-9 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer"
-              title="Профиль"
+              title="Войти в аккаунт"
             >
               <Icon name="User" size={17} />
             </button>
@@ -48,6 +50,7 @@ export default function Header() {
       </header>
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </>
   )
 }
